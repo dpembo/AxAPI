@@ -1,0 +1,113 @@
+# Build AxAPI and (on version tags) create a GitHub Release with the artifacts.
+# Triggers:
+#   - push / pull_request: build only
+#   - push of tags matching v* (e.g. v2.1.9): build + GitHub Release
+
+name: Build and Release
+
+on:
+  push:
+    branches: [ "master", "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Set up JDK 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: "25"
+          distribution: "temurin"
+
+      # Prefer JDK 21 for the Gradle daemon; toolchain will use 25 for v26_* modules
+      - name: Point JAVA_HOME at JDK 21
+        run: echo "JAVA_HOME=${{ env.JAVA_HOME_21_X64 || env.JAVA_HOME }}" >> "$GITHUB_ENV"
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build with Gradle
+        run: ./gradlew clean build -x test --no-daemon
+        env:
+          # Extra headroom for paperweight userdev
+          GRADLE_OPTS: "-Xmx4g -Dorg.gradle.daemon=false"
+
+      - name: Collect artifacts
+        run: |
+          mkdir -p artifacts
+          # Root shadow jar (main plugin)
+          find build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -exec cp -v {} artifacts/ \; 2>/dev/null || true
+          # API jar if present
+          find api/build/libs -name "*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -exec cp -v {} artifacts/ \; 2>/dev/null || true
+          # NMS modules that produce jars (especially v26_*)
+          find nms -path "*/build/libs/*.jar" ! -name "*-sources.jar" ! -name "*-javadoc.jar" -exec cp -v {} artifacts/ \; 2>/dev/null || true
+          ls -lh artifacts/ || true
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: AxAPI-jars
+          path: artifacts/
+          if-no-files-found: warn
+          retention-days: 14
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: AxAPI-jars
+          path: artifacts
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AxAPI ${{ github.ref_name }}
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') || contains(github.ref_name, 'rc') || contains(github.ref_name, 'beta') || contains(github.ref_name, 'alpha') }}
+          generate_release_notes: true
+          body: |
+            ## AxAPI ${{ github.ref_name }}
+
+            Built for Paper / Minecraft including **26.3 (protocol 777)**.
+
+            ### Artifacts
+            - Main shadow JAR (drop into `plugins/`)
+            - API + NMS jars as needed for downstream plugins
+
+            ### Notes
+            - Java 21+ runtime; 26.x NMS modules target Java 25 at compile time.
+            - 26.x handlers use runtime download (`requiresDownload`) where applicable.
+          files: |
+            artifacts/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
