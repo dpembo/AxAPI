@@ -108,15 +108,20 @@ public class NMSHandler implements com.artillexstudios.axapi.nms.NMSHandler {
         tag.putInt("y", pos.getY());
         tag.putInt("z", pos.getZ());
         tag.putString("id", "minecraft:oak_sign");
-        SignText text = new SignText();
+        java.util.List<net.minecraft.network.chat.Component> messages = new java.util.ArrayList<>(4);
+        java.util.List<net.minecraft.network.chat.Component> filteredMessages = new java.util.ArrayList<>(4);
         for (int i = 0; i < 4; i++) {
-            text = text.setMessage(i, ComponentSerializer.INSTANCE.toVanilla(i > signInput.getLines().length ? Component.empty() : signInput.getLines()[i]));
+            net.minecraft.network.chat.Component line = ComponentSerializer.INSTANCE.toVanilla(
+                    i >= signInput.getLines().length ? Component.empty() : signInput.getLines()[i]);
+            messages.add(line);
+            filteredMessages.add(line);
         }
+        SignText text = new SignText(messages, filteredMessages, net.minecraft.world.item.DyeColor.BLACK, false);
 
         DynamicOps<Tag> dynamicOps = MinecraftServer.getServer().registryAccess().createSerializationContext(NbtOps.INSTANCE);
-        tag.store("front_text", SignText.DIRECT_CODEC, dynamicOps, text);
+        tag.store("front_text", SignText.CODEC, dynamicOps, text);
         ClientboundBlockEntityDataPacket clientboundBlockEntityDataPacket = new ClientboundBlockEntityDataPacket(pos, BlockEntityTypes.SIGN, tag);
-        ClientboundOpenSignEditorPacket openSignEditorPacket = new ClientboundOpenSignEditorPacket(pos, true);
+        ClientboundOpenSignEditorPacket openSignEditorPacket = new ClientboundOpenSignEditorPacket(pos, net.minecraft.world.level.block.entity.SignTextSlot.FRONT);
         player.connection.send(clientboundBlockEntityDataPacket);
         player.connection.send(openSignEditorPacket);
     }

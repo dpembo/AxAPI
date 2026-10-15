@@ -42,7 +42,7 @@ public enum ItemStackSerializer {
             int dataVersion = compound.getIntOr("DataVersion", 0);
             CompoundTag converted = (CompoundTag) MinecraftServer.getServer().getFixerUpper().update(References.ITEM_STACK, new Dynamic<>(NbtOps.INSTANCE, compound), dataVersion, SharedConstants.getCurrentVersion().dataVersion().version()).getValue();
             net.minecraft.world.item.ItemStack minecraftStack = net.minecraft.world.item.ItemStack.CODEC.parse(MinecraftServer.getServer().registryAccess().createSerializationContext(NbtOps.INSTANCE), converted).getOrThrow();
-            return CraftItemStack.asCraftMirror(minecraftStack);
+            return (minecraftStack).asBukkitMirror();
         } catch (Exception exception) {
             throw new RuntimeException(exception);
         }
@@ -62,7 +62,7 @@ public enum ItemStackSerializer {
             int dataVersion = parsed.getIntOr("DataVersion", 0);
             CompoundTag converted = (CompoundTag) MinecraftServer.getServer().getFixerUpper().update(References.ITEM_STACK, new Dynamic<>(NbtOps.INSTANCE, parsed), dataVersion, SharedConstants.getCurrentVersion().dataVersion().version()).getValue();
             net.minecraft.world.item.ItemStack minecraftStack = net.minecraft.world.item.ItemStack.CODEC.parse(MinecraftServer.getServer().registryAccess().createSerializationContext(NbtOps.INSTANCE), converted).getOrThrow();
-            return CraftItemStack.asCraftMirror(minecraftStack);
+            return (minecraftStack).asBukkitMirror();
         } catch (CommandSyntaxException exception) {
             LogUtils.error("Failed to parse SNBT into an ItemStack! Please, check out the exception for more details!", exception);
             throw new RuntimeException(exception);
