@@ -116,7 +116,7 @@ public class LootTable implements com.artillexstudios.axapi.loot.LootTable {
         ObjectArrayList<net.minecraft.world.item.ItemStack> items = this.lootTable.getRandomItems(toLootParams(params));
         ObjectArrayList<ItemStack> returning = new ObjectArrayList<>(items.size());
         for (net.minecraft.world.item.ItemStack item : items) {
-            returning.add((item).asBukkitMirror());
+            returning.add(CraftItemStack.asBukkitMirror(item));
         }
 
         return returning;

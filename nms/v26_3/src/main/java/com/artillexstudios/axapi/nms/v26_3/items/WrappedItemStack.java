@@ -52,7 +52,7 @@ public class WrappedItemStack implements com.artillexstudios.axapi.items.Wrapped
 
     @Override
     public ItemStack toBukkit() {
-        return (this.itemStack.copy().asBukkitMirror());
+        return CraftItemStack.asBukkitMirror(this.itemStack.copy());
     }
 
     @Override
