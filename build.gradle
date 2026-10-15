@@ -13,7 +13,7 @@ java {
     }
 }
 
-def java25NmsModules = ["v26_1", "v26_2"]
+def java25NmsModules = ["v26_1", "v26_2", "v26_3"]
 
 dependencies {
     compileOnly project(path: ":api")
@@ -80,14 +80,15 @@ allprojects {
     publishing {
         afterEvaluate {
             repositories {
-                maven {
-                    name = "Artillex-Studios"
-                    url = "https://repo.artillex-studios.com/releases"
-                    credentials {
-                        it.username = System.getenv("MAVEN_USERNAME") ?: "${maven_username}"
-                        it.password = System.getenv("MAVEN_PASSWORD") ?: "${maven_password}"
-                    }
-                }
+                // Publishing to Artillex-Studios disabled for local builds (requires auth)
+                // maven {
+                //     name = "Artillex-Studios"
+                //     url = "https://repo.artillex-studios.com/releases"
+                //     credentials {
+                //         it.username = System.getenv("MAVEN_USERNAME") ?: project.findProperty("maven_username")
+                //         it.password = System.getenv("MAVEN_PASSWORD") ?: project.findProperty("maven_password")
+                //     }
+                // }
             }
 
             publications {
